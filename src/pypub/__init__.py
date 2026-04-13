@@ -1,0 +1,5 @@
+__version__ = "0.0.1"
+__app_name__ = "PyPub"
+__author__ = "Pablo Murad"
+__contact__ = "pmurad@disroot.org"
+__user_agent__ = f"{__app_name__}/{__version__} (+mailto:{__contact__})"

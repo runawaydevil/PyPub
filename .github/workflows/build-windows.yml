@@ -1,0 +1,43 @@
+name: Windows Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+        
+    - name: Run Tests
+      run: |
+        pytest -v
+        
+    - name: Build Executable (PyInstaller)
+      run: |
+        pyinstaller pypub.spec
+        
+    # Aqui entraria o Inno Setup ou se comprimiria o `dist/PyPub` em um zip. Usaremos Zip como fallback CI.
+    - name: Zip Release
+      run: |
+        Compress-Archive -Path dist/PyPub -DestinationPath PyPub-Win64.zip
+        
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: PyPub-Win64.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,27 @@
+The PyPub "Seriously, Whatever" License
+========================================
+
+Copyright (c) 2026 Pablo Murad and contributors
+
+You can copy this software. You can change it. You can sell it, give it
+away, print it on a sandwich, eat the sandwich, bury the crumbs, forget
+this project ever existed, fork it under a new name, ship it to Mars,
+use it as a paperweight, or do literally anything else. I do not care.
+I am not your lawyer, your therapist, or your supervisor.
+
+If you find it useful, cool. If you break something with it, that is
+on you. If you get rich selling a fork, buy yourself something nice—
+or do not. I still do not care.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR THAT YOUR
+MICROPUB ENDPOINT WILL ALWAYS BEHAVE. IN NO EVENT SHALL THE AUTHORS
+BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+In plain English: have fun, be kind, and do not sue me over a hobby
+project. If you need a boring corporate-approved license, pick MIT or
+BSD yourself and pretend this file never happened.

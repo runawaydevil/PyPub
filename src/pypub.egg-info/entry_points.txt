@@ -1,0 +1,2 @@
+[console_scripts]
+pypub = pypub.main:main
