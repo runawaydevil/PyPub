@@ -1,15 +1,20 @@
 import sys
+from pathlib import Path
+
 from platformdirs import user_data_dir, user_config_dir, user_log_dir
 from PySide6.QtWidgets import QApplication
-from pypub.infrastructure.db import Database
-from pypub.infrastructure.keyring_store import KeyringStore
+
+from pypub import __version__
 from pypub.application.auth_service import AuthService
+from pypub.application.crash_handler import global_exception_handler
 from pypub.application.post_service import PostService
 from pypub.domain.settings import SettingsManager
-from pypub.ui.shell import MainWindow
+from pypub.infrastructure.db import Database
+from pypub.infrastructure.keyring_store import KeyringStore
 from pypub.infrastructure.logger import setup_logger
-from pypub.application.crash_handler import global_exception_handler
-from pathlib import Path
+from pypub.ui.app_icon import load_app_icon
+from pypub.ui.editor.editor_theme import apply_app_theme
+from pypub.ui.shell import MainWindow
 
 def main():
     # Setup global crash handler
@@ -17,7 +22,10 @@ def main():
     
     app = QApplication(sys.argv)
     app.setApplicationName("PyPub")
-    app.setApplicationVersion("0.0.1")
+    app.setApplicationVersion(__version__)
+    app_icon = load_app_icon()
+    if not app_icon.isNull():
+        app.setWindowIcon(app_icon)
 
     # Platform Dirs Config
     app_author = "Pablo Murad"
@@ -34,6 +42,7 @@ def main():
     logger.info("Starting PyPub")
     
     settings_manager = SettingsManager(app_config)
+    apply_app_theme(app, settings_manager.settings)
 
     # Infra
     db = Database(app_data / "pypub.sqlite")
@@ -49,7 +58,16 @@ def main():
     post_service = PostService(db, keyring_store)
 
     # UI
-    window = MainWindow(auth_service, post_service, settings_manager, app_data)
+    window = MainWindow(
+        auth_service,
+        post_service,
+        settings_manager,
+        app_data,
+        app_config_path=app_config,
+        app_log_path=app_log,
+    )
+    if not app_icon.isNull():
+        window.setWindowIcon(app_icon)
     window.show()
 
     sys.exit(app.exec())

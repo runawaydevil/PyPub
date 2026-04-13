@@ -42,7 +42,7 @@ class LoginDialog(QDialog):
     def __init__(self, auth_service, parent=None):
         super().__init__(parent)
         self.auth_service = auth_service
-        self.setWindowTitle("Login via IndieAuth")
+        self.setWindowTitle("Settle in with IndieAuth")
         self.resize(400, 200)
 
         layout = QVBoxLayout(self)
@@ -50,10 +50,10 @@ class LoginDialog(QDialog):
         self.url_input.setPlaceholderText("https://yourdomain.com")
 
         form = QFormLayout()
-        form.addRow("Your Website URL:", self.url_input)
+        form.addRow("Website URL:", self.url_input)
         layout.addLayout(form)
 
-        self.btn_login = QPushButton("Login")
+        self.btn_login = QPushButton("Connect this site")
         self.btn_login.clicked.connect(self.do_login)
         layout.addWidget(self.btn_login)
 
@@ -66,13 +66,14 @@ class LoginDialog(QDialog):
             endpoints = self.auth_service.discover_endpoints(me_url)
             auth_endpoint = endpoints.get("authorization_endpoint")
             if not auth_endpoint:
-                QMessageBox.critical(self, "Error", "No authorization_endpoint discovered.")
+                QMessageBox.critical(self, "Could not connect", "PyPub couldn't find an authorization endpoint for that site.")
                 return
+            canonical_me = endpoints.get("me", me_url)
 
             # Para bular validações severas de servidores Oauth restritos (Indiekit), 
             # forçamos que o 'client_id' e a 'redirect_uri' sejam o próprio site do alvo.
-            self.auth_service.indieauth_client.client_id = me_url
-            self.auth_service.indieauth_client.redirect_uri = me_url
+            self.auth_service.indieauth_client.client_id = canonical_me
+            self.auth_service.indieauth_client.redirect_uri = canonical_me
             
             verifier, challenge = self.auth_service.generate_pkce()
             state = secrets.token_urlsafe(16)
@@ -82,21 +83,21 @@ class LoginDialog(QDialog):
             )
 
             # Abre o mini-browser e intercepta silenciosamente o redirect de sucesso
-            browser_dialog = OauthBrowserDialog(auth_url, me_url, self)
+            browser_dialog = OauthBrowserDialog(auth_url, canonical_me, self)
             if browser_dialog.exec():
                 if browser_dialog.auth_code:
                     if browser_dialog.auth_state != state:
-                        QMessageBox.critical(self, "Error", "State mismatch.")
+                        QMessageBox.critical(self, "Could not connect", "The IndieAuth state check did not match.")
                         return
                     
                     account = self.auth_service.handle_callback(endpoints, browser_dialog.auth_code, verifier)
-                    QMessageBox.information(self, "Success", f"Logged in as {account.display_name}")
+                    QMessageBox.information(self, "Connected", f"You’re now signed in as {account.display_name}.")
                     self.accept()
             else:
                 if browser_dialog.error:
-                    QMessageBox.critical(self, "Error", browser_dialog.error)
+                    QMessageBox.critical(self, "Could not connect", browser_dialog.error)
                 else:
                     pass # User cancelled
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
+            QMessageBox.critical(self, "Could not connect", str(e))

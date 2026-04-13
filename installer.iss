@@ -10,6 +10,8 @@ Compression=lzma
 SolidCompression=yes
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
+SetupIconFile=src\pypub\assets\app_icon.ico
+UninstallDisplayIcon={app}\PyPub.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

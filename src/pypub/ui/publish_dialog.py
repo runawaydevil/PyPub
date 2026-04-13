@@ -1,10 +1,12 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QCheckBox, QPushButton, QHBoxLayout, QMessageBox
+import json
+
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QCheckBox, QPushButton, QHBoxLayout
 from pypub.domain.models import Draft
 
 class PublishConfirmationDialog(QDialog):
     def __init__(self, account_url: str, draft: Draft, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Review Publish Action")
+        self.setWindowTitle("Review before publishing")
         self.resize(350, 400)
         self.draft = draft
         self.account_url = account_url
@@ -16,25 +18,25 @@ class PublishConfirmationDialog(QDialog):
         layout.addWidget(QLabel(f"<b>Visibility:</b> {draft.visibility or 'default'}"))
 
         # Checagens inteligentes
-        has_media = len(draft.attachments_json) > 4 # Minimal check if list is not "[]"
+        has_media = bool(json.loads(draft.attachments_json or "[]"))
         if has_media:
-            lbl_media = QLabel("⚠️ Images found. Are alt-texts provided?")
-            lbl_media.setStyleSheet("color: #d35400;")
+            lbl_media = QLabel("Images are attached. Review alt text before publishing.")
+            lbl_media.setObjectName("MediaWarning")
             layout.addWidget(lbl_media)
 
         if draft.content_mode == "rich_text":
-            lbl_rich = QLabel("ℹ️ Rich Text will be published as HTML.")
+            lbl_rich = QLabel("Rich text will be published as HTML.")
             layout.addWidget(lbl_rich)
 
         layout.addStretch()
 
-        self.chk_confirm = QCheckBox("I understand. Proceed with publishing.")
+        self.chk_confirm = QCheckBox("I reviewed this post and want to publish it.")
         layout.addWidget(self.chk_confirm)
 
         h_btns = QHBoxLayout()
-        self.btn_publish = QPushButton("Publish Now")
+        self.btn_publish = QPushButton("Publish now")
         self.btn_publish.setEnabled(False)
-        self.btn_publish.setStyleSheet("background-color: #2e8b57; color: white;")
+        self.btn_publish.setObjectName("PrimaryAction")
         self.btn_cancel = QPushButton("Cancel")
         
         self.chk_confirm.stateChanged.connect(self._toggle_btn)

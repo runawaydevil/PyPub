@@ -1,30 +1,9 @@
-import os
 import pytest
-from pathlib import Path
 
 from pypub.domain.settings import SettingsManager
-from pypub.infrastructure.db import Database
+from pypub.ui.app_icon import app_icon_candidates, load_app_icon
 from pypub.ui.shell import MainWindow
-from pypub.application.auth_service import AuthService
-from pypub.application.post_service import PostService
 
-# Simple in-memory mock for Keyring
-class MockKeyring:
-    def get_token(self, account_id): return "mock_token"
-    def delete_token(self, account_id): pass
-
-@pytest.fixture
-def test_db(tmp_path):
-    db_path = tmp_path / "test.sqlite"
-    return Database(db_path)
-
-@pytest.fixture
-def mock_managers(tmp_path, test_db):
-    config_dir = tmp_path / "config"
-    settings = SettingsManager(config_dir)
-    auth = AuthService(test_db, MockKeyring(), "mock_id", "mock_uri")
-    post = PostService(test_db, MockKeyring())
-    return auth, post, settings, tmp_path
 
 def test_settings_persistence(tmp_path):
     config_dir = tmp_path / "config"
@@ -32,7 +11,7 @@ def test_settings_persistence(tmp_path):
     
     # Check default creates without error
     manager = SettingsManager(config_dir)
-    assert manager.settings.theme == "system"
+    assert manager.settings.theme == "light"
     manager.settings.theme = "dark"
     manager.save()
     
@@ -40,6 +19,28 @@ def test_settings_persistence(tmp_path):
     manager2 = SettingsManager(config_dir)
     assert manager2.settings.theme == "dark"
     assert manager2.settings.wrap_lines == True
+
+
+def test_settings_migrates_legacy_appearance_preset(tmp_path):
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "settings.json").write_text(
+        '{\n  "appearance_preset": "writer_nook",\n  "theme": "system"\n}\n',
+        encoding="utf-8",
+    )
+
+    manager = SettingsManager(config_dir)
+
+    assert manager.settings.appearance_preset == "office_light"
+    assert manager.settings.theme == "system"
+    manager.save()
+    saved = (config_dir / "settings.json").read_text(encoding="utf-8")
+    assert '"appearance_preset": "office_light"' in saved
+
+
+def test_app_icon_loads():
+    assert any(path.exists() for path in app_icon_candidates())
+    assert load_app_icon().isNull() is False
 
 def test_mainwindow_smoke(qtbot, mock_managers):
     auth, post, settings, tmp_path = mock_managers
@@ -50,4 +51,4 @@ def test_mainwindow_smoke(qtbot, mock_managers):
     
     # Assert sanity
     assert window.isVisible() == False
-    assert window.stack.count() >= 4 # We created at least Accounts, Drafts, Compose, Settings, Tech
+    assert window.stack.count() == 6

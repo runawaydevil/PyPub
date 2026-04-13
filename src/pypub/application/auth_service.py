@@ -1,5 +1,5 @@
 from datetime import datetime
-from pypub.domain.models import Account, TokenInfo
+from pypub.domain.models import Account
 from pypub.infrastructure.db import Database
 from pypub.infrastructure.keyring_store import KeyringStore
 from pypub.infrastructure.indieauth import IndieAuthClient
@@ -39,7 +39,7 @@ class AuthService:
             me_url=me,
             canonical_me_url=token_response.get("me", me),
             client_id=self.indieauth_client.client_id,
-            client_uri="http://localhost", # Adjust base client_uri
+            client_uri=self.indieauth_client.client_id,
             redirect_uri=self.indieauth_client.redirect_uri,
             authorization_endpoint=endpoints.get("authorization_endpoint", ""),
             token_endpoint=token_endpoint,
@@ -51,6 +51,7 @@ class AuthService:
         )
 
         account_id = self.db.save_account(account)
+        account.id = account_id
         access_token = token_response.get("access_token")
         
         if access_token:
@@ -60,3 +61,20 @@ class AuthService:
 
     def get_access_token(self, account_id: int) -> str | None:
         return self.keyring_store.get_token(account_id)
+
+    def refresh_account_metadata(self, account: Account) -> Account:
+        endpoints = self.discover_endpoints(account.me_url)
+        refreshed = account.model_copy(deep=True)
+        refreshed.me_url = endpoints.get("me") or refreshed.me_url
+        refreshed.canonical_me_url = refreshed.me_url
+        refreshed.authorization_endpoint = endpoints.get("authorization_endpoint") or ""
+        refreshed.token_endpoint = endpoints.get("token_endpoint") or ""
+        refreshed.micropub_endpoint = endpoints.get("micropub") or ""
+        refreshed.raw_metadata_json = endpoints.get("raw_metadata") or "{}"
+        refreshed.last_discovered_at = datetime.now()
+        refreshed.id = self.db.save_account(refreshed)
+        return refreshed
+
+    def remove_account(self, account_id: int) -> None:
+        self.keyring_store.delete_token(account_id)
+        self.db.delete_account(account_id)

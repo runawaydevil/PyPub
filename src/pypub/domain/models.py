@@ -3,8 +3,10 @@
 # Version: 0.0.1
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Literal
+from typing import Literal
 from pydantic import BaseModel, HttpUrl, Field
+
+from pypub.domain.editor_modes import DEFAULT_EDITOR_MODE, EditorMode
 
 class Account(BaseModel):
     id: int | None = None
@@ -40,7 +42,7 @@ class Draft(BaseModel):
     content_plain: str | None = None
     content_html: str | None = None
     content_markdown_source: str | None = None
-    content_mode: str = "plain" # plain, html, markdown
+    content_mode: EditorMode = DEFAULT_EDITOR_MODE
     categories: list[str] = Field(default_factory=list)
     published_at: str | None = None
     updated_at: str | None = None

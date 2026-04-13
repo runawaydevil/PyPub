@@ -5,8 +5,14 @@ __pycache__/
 
 # PyInstaller / Build artifacts
 build/
+build_stage/
 dist/
+dist_stage/
 *.spec
+!pypub.spec
+
+# setuptools / pip -e
+*.egg-info/
 
 # Installer setup outputs
 Output/
@@ -22,6 +28,17 @@ venv/
 .venv/
 env/
 .env/
+# Ficheiros de ambiente (credenciais locais — nunca versionar)
+.env
+.env.*
+!.env.example
+
+# Chaves e credenciais acidentais
+*.pem
+id_rsa
+id_rsa.pub
+*credentials*.json
+secrets.json
 
 # IDE / Editor
 .vscode/
@@ -36,3 +53,6 @@ Thumbs.db
 *.sqlite
 *.sqlite-journal
 *.log
+
+# dev docs
+how.md

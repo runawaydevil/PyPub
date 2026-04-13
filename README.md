@@ -1,6 +1,8 @@
 PyPub
 =====
 
+![](img/pubpy.png)
+
 A native desktop Micropub client for Windows.
 
 PyPub allows you to authenticate with your domain via IndieAuth, draft posts (text, markdown, html), attach media, and publish to your Micropub endpoint. Local data is kept in an SQLite database, and session tokens are securely handled by the Windows Credential Manager.
@@ -23,7 +25,14 @@ To run locally or build the standalone executable:
 3. Build executable:
    .\build.ps1
 
-The standalone .exe will be deposited in the `dist/` directory. You can further pack it using Inno Setup Compiler targeting `installer.iss`.
+   Fast iteration (skip pip + pytest; use only with a ready venv):
+   .\build.ps1 -Fast
+
+The standalone .exe will be deposited in `dist/PyPub/`. The build script packages into a staging folder, runs a Qt/WebEngine bundle check (`scripts/verify-frozen-bundle.ps1`), smoke-tests the executable, then promotes to `dist/`. UPX compression is disabled in `pypub.spec` to avoid broken Qt/Shiboken DLLs.
+
+For a console build to debug startup errors, see `docs/BUILD.md` (`PYPUB_PYI_CONSOLE`).
+
+You can pack the folder using Inno Setup Compiler targeting `installer.iss`.
 
 ARCHITECTURE
 ------------

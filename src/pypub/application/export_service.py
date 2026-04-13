@@ -1,15 +1,11 @@
 import json
 import zipfile
-from pathlib import Path
-from typing import List
-from pypub.domain.models import Draft
 
 class ExportService:
-    def __init__(self, post_service, db_path: Path):
+    def __init__(self, post_service):
         self.post_service = post_service
-        self.db_path = db_path
         
-    def export_drafts(self, account_id: int, out_path: str):
+    def export_drafts(self, account_id: int, out_path: str) -> None:
         """
         Zips all drafts for an account into a single .pypub archive.
         """

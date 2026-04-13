@@ -2,7 +2,8 @@ import sqlite3
 import json
 from pathlib import Path
 from typing import List, Optional
-from pypub.domain.models import Account, Draft, Attachment
+from pypub.domain.editor_modes import normalize_editor_mode
+from pypub.domain.models import Account, Draft, ServerCapabilities
 
 class Database:
     def __init__(self, db_path: Path):
@@ -130,8 +131,55 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM accounts")
+            cursor.execute("SELECT * FROM accounts ORDER BY id ASC")
             return [Account(**dict(row)) for row in cursor.fetchall()]
+
+    def delete_account(self, account_id: int) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM capabilities WHERE account_id = ?", (account_id,))
+            conn.execute("DELETE FROM drafts WHERE account_id = ?", (account_id,))
+            conn.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
+            conn.commit()
+
+    # --- CAPABILITIES ---
+    def save_capabilities(self, capabilities: ServerCapabilities) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO capabilities (
+                    account_id, supports_media_endpoint, supports_q_config,
+                    supports_q_source, supports_q_syndicate_to,
+                    supported_syndication_targets_json, raw_config_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(account_id) DO UPDATE SET
+                    supports_media_endpoint=excluded.supports_media_endpoint,
+                    supports_q_config=excluded.supports_q_config,
+                    supports_q_source=excluded.supports_q_source,
+                    supports_q_syndicate_to=excluded.supports_q_syndicate_to,
+                    supported_syndication_targets_json=excluded.supported_syndication_targets_json,
+                    raw_config_json=excluded.raw_config_json
+                """,
+                (
+                    capabilities.account_id,
+                    capabilities.supports_media_endpoint,
+                    capabilities.supports_q_config,
+                    capabilities.supports_q_source,
+                    capabilities.supports_q_syndicate_to,
+                    capabilities.supported_syndication_targets_json,
+                    capabilities.raw_config_json,
+                ),
+            )
+            conn.commit()
+
+    def get_capabilities(self, account_id: int) -> Optional[ServerCapabilities]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM capabilities WHERE account_id = ?", (account_id,))
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            return ServerCapabilities(**dict(row))
 
     # --- DRAFTS ---
     def save_draft(self, draft: Draft) -> int:
@@ -183,20 +231,34 @@ class Database:
             conn.commit()
             return draft.id
             
+    @staticmethod
+    def _draft_from_row(row: sqlite3.Row) -> Draft:
+        d = dict(row)
+        d["categories"] = json.loads(d["categories"]) if d.get("categories") else []
+        d["syndication_targets"] = (
+            json.loads(d["syndication_targets"]) if d.get("syndication_targets") else []
+        )
+        d["is_dirty"] = bool(d.get("is_dirty", False))
+        d["content_mode"] = normalize_editor_mode(d.get("content_mode"))
+        return Draft(**d)
+
     def get_drafts(self, account_id: int) -> List[Draft]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM drafts WHERE account_id = ? ORDER BY id DESC", (account_id,))
             rows = cursor.fetchall()
-            drafts = []
-            for row in rows:
-                d = dict(row)
-                d['categories'] = json.loads(d['categories']) if d['categories'] else []
-                d['syndication_targets'] = json.loads(d['syndication_targets']) if d['syndication_targets'] else []
-                
-                # Check for is_dirty boolean mapping correctly
-                d['is_dirty'] = bool(d.get('is_dirty', False))
+            return [self._draft_from_row(row) for row in rows]
 
-                drafts.append(Draft(**d))
-            return drafts
+    def get_draft_by_id(self, account_id: int, draft_id: int) -> Optional[Draft]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM drafts WHERE account_id = ? AND id = ?",
+                (account_id, draft_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            return self._draft_from_row(row)
